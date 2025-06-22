@@ -409,7 +409,7 @@ export const reportDocumentHandler = createDocumentHandler({
     // For demo purposes, use sample products
     // In a real implementation, these would come from the AI agent's analysis
    const allProducts = getAllSampleProducts();
-   const sampleProducts = allProducts.filter((product) => products.some((p) => p.itemCode === product.itemCode));
+   const sampleProducts = allProducts.filter((product) => products.some((p:any) => p.itemCode === product.itemCode));
    console.log('sampleProducts', sampleProducts.length);
     // Generate the HTML report
     const htmlContent = generateHTMLReport(incidentData!, sampleProducts.map((product) => ({

@@ -158,7 +158,7 @@ class GDACSRSSParser {
       };
 
       // Extract additional information from GDACS-specific elements
-      event.category = this.getElementText(item, 'category');
+      event.category = this.getElementText(item, 'category') as string | undefined;
       
       // Parse coordinates from georss:point if available
       const geoPoint = this.getElementText(item, 'georss:point') || 

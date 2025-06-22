@@ -36,6 +36,7 @@ import {
   type ProductCategory,
   type RegionalProductPreference,
   type ProductInventory,
+  type NewDisasterAlert,
   type NewProduct,
   type NewProductCategory,
   type NewRegionalProductPreference,
@@ -46,7 +47,7 @@ import { generateUUID } from '../utils';
 import { generateHashedPassword } from './utils';
 import type { VisibilityType } from '@/components/visibility-selector';
 import { ChatSDKError } from '../errors';
-import type { NewDisasterAlert } from './schema';
+
 import { db } from './index';
 
 // Optionally, if not using email/pass login, you can
