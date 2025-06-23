@@ -28,6 +28,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LeadCompaniesDialog } from "@/components/lead-companies-dialog";
 import Link from "next/link";
 
 interface IncidentDetailPageProps {
@@ -426,7 +427,7 @@ export default function IncidentDetailPage({
                     loading="lazy"
                     allowFullScreen
                     referrerPolicy="no-referrer-when-downgrade"
-                    src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyDgypfd_nzYtOIC99LpGq5PELcMGDnfMcU&q=${incident.latitude},${incident.longitude}&zoom=10&maptype=satellite`}
+                    src={`https://www.google.com/maps/embed/v1/view?key=AIzaSyDgypfd_nzYtOIC99LpGq5PELcMGDnfMcU&center=${incident.latitude},${incident.longitude}&zoom=10&maptype=satellite`}
                     title={`Map showing ${incident.title} location`}
                   />
                   <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg border border-gray-200">
@@ -1057,14 +1058,23 @@ export default function IncidentDetailPage({
                             </span>
                           </td>
                           <td className="p-4 text-center">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
+                            <LeadCompaniesDialog
+                              eventId={incident.eventId}
+                              productName={product.name}
+                              productCategory={product.category}
+                              location={
+                                incident.country?.toLowerCase() || "qatar"
+                              }
                             >
-                              <ExternalLink className="size-3 mr-1" />
-                              View Details
-                            </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
+                              >
+                                <ExternalLink className="size-3 mr-1" />
+                                View Details
+                              </Button>
+                            </LeadCompaniesDialog>
                           </td>
                         </tr>
                       ))}
