@@ -29,6 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LeadCompaniesDialog } from "@/components/lead-companies-dialog";
+import { LeadCompaniesSheet } from "@/components/lead-companies-sheet";
 import Link from "next/link";
 
 interface IncidentDetailPageProps {
@@ -377,6 +378,16 @@ export default function IncidentDetailPage({
 
               {/* Quick Stats */}
               <div className="flex items-center gap-6 text-sm">
+                <LeadCompaniesSheet eventId={incident.eventId}>
+                  <Button
+                    variant="outline"
+                    className="gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300"
+                  >
+                    <Users2 className="size-4" />
+                    Organizations
+                  </Button>
+                </LeadCompaniesSheet>
+
                 <div className="text-center">
                   <div className="font-semibold text-blue-600">
                     {incident.population.value.toLocaleString()}
