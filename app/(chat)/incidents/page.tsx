@@ -665,7 +665,7 @@ export default function IncidentsPage() {
                   <CardHeader className="pb-3 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg shrink-0">
+                        <div className="py-2 px-3 border bg-gray-50 dark:bg-gray-700 rounded-lg shrink-0">
                           <span className="text-xl">
                             {getTypeIcon(incident.type)}
                           </span>

@@ -1,5 +1,5 @@
-import https from 'https';
-import { DOMParser } from 'xmldom';
+import https from "https";
+import { DOMParser } from "xmldom";
 
 interface GDACSEvent {
   title: string;
@@ -15,10 +15,45 @@ interface GDACSEvent {
     lat: number;
     lon: number;
   };
+  // GDACS-specific fields
+  eventId?: string;
+  eventName?: string;
+  episodeId?: string;
+  alertScore?: number;
+  severity?: {
+    unit: string;
+    value: number;
+    description: string;
+  };
+  population?: {
+    unit: string;
+    value: number;
+    description: string;
+  };
+  vulnerability?: {
+    value: number;
+    level: string;
+  };
+  iso3?: string;
+  fromDate?: string;
+  toDate?: string;
+  lastModified?: string;
+  bbox?: string;
+  iconUrl?: string;
+  mapImage?: string;
+  isCurrent?: boolean;
+  temporary?: boolean;
+  // Additional GDACS fields
+  eventTypeCode?: string;
+  resources?: Array<{
+    uri: string;
+    title: string;
+  }>;
+  affectedCountries?: string[];
 }
 
 class GDACSRSSParser {
-  private readonly rssUrl = 'https://www.gdacs.org/xml/rss.xml';
+  private readonly rssUrl = "https://www.gdacs.org/xml/rss.xml";
 
   /**
    * Downloads and parses the GDACS RSS feed
@@ -29,7 +64,7 @@ class GDACSRSSParser {
       const xmlText = await this.downloadXML();
       return this.parseXML(xmlText);
     } catch (error) {
-      console.error('Error fetching GDACS RSS feed:', error);
+      console.error("Error fetching GDACS RSS feed:", error);
       throw error;
     }
   }
@@ -44,7 +79,10 @@ class GDACSRSSParser {
         // Handle redirects
         if (response.statusCode === 301 || response.statusCode === 302) {
           if (response.headers.location) {
-            https.get(response.headers.location, this.handleResponse(resolve, reject));
+            https.get(
+              response.headers.location,
+              this.handleResponse(resolve, reject)
+            );
             return;
           }
         }
@@ -54,25 +92,25 @@ class GDACSRSSParser {
           return;
         }
 
-        let data = '';
-        response.setEncoding('utf8');
-        
-        response.on('data', (chunk) => {
+        let data = "";
+        response.setEncoding("utf8");
+
+        response.on("data", (chunk) => {
           data += chunk;
         });
 
-        response.on('end', () => {
+        response.on("end", () => {
           resolve(data);
         });
       });
 
-      request.on('error', (error) => {
+      request.on("error", (error) => {
         reject(new Error(`Request failed: ${error.message}`));
       });
 
       request.setTimeout(10000, () => {
         request.destroy();
-        reject(new Error('Request timeout'));
+        reject(new Error("Request timeout"));
       });
     });
   }
@@ -83,21 +121,24 @@ class GDACSRSSParser {
    * @param reject Promise reject function
    * @returns Response handler function
    */
-  private handleResponse(resolve: (value: string) => void, reject: (reason: Error) => void) {
+  private handleResponse(
+    resolve: (value: string) => void,
+    reject: (reason: Error) => void
+  ) {
     return (response: any) => {
       if (response.statusCode !== 200) {
         reject(new Error(`HTTP error! status: ${response.statusCode}`));
         return;
       }
 
-      let data = '';
-      response.setEncoding('utf8');
-      
-      response.on('data', (chunk: string) => {
+      let data = "";
+      response.setEncoding("utf8");
+
+      response.on("data", (chunk: string) => {
         data += chunk;
       });
 
-      response.on('end', () => {
+      response.on("end", () => {
         resolve(data);
       });
     };
@@ -110,15 +151,15 @@ class GDACSRSSParser {
    */
   private parseXML(xmlText: string): GDACSEvent[] {
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-    
+    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
     // Check for parsing errors
-    const parserError = xmlDoc.getElementsByTagName('parsererror')[0];
+    const parserError = xmlDoc.getElementsByTagName("parsererror")[0];
     if (parserError) {
-      throw new Error('XML parsing error: ' + parserError.textContent);
+      throw new Error("XML parsing error: " + parserError.textContent);
     }
 
-    const items = xmlDoc.getElementsByTagName('item');
+    const items = xmlDoc.getElementsByTagName("item");
     const events: GDACSEvent[] = [];
 
     for (let i = 0; i < items.length; i++) {
@@ -138,14 +179,14 @@ class GDACSRSSParser {
    */
   private parseItem(item: Element): GDACSEvent | null {
     try {
-      const title = this.getElementText(item, 'title');
-      const link = this.getElementText(item, 'link');
-      const description = this.getElementText(item, 'description');
-      const pubDate = this.getElementText(item, 'pubDate');
-      const guid = this.getElementText(item, 'guid');
+      const title = this.getElementText(item, "title");
+      const link = this.getElementText(item, "link");
+      const description = this.getElementText(item, "description");
+      const pubDate = this.getElementText(item, "pubDate");
+      const guid = this.getElementText(item, "guid");
 
       if (!title || !link || !description || !pubDate) {
-        console.warn('Skipping item with missing required fields');
+        console.warn("Skipping item with missing required fields");
         return null;
       }
 
@@ -158,30 +199,159 @@ class GDACSRSSParser {
       };
 
       // Extract additional information from GDACS-specific elements
-      event.category = this.getElementText(item, 'category') as string | undefined;
-      
-      // Parse coordinates from georss:point if available
-      const geoPoint = this.getElementText(item, 'georss:point') || 
-                      this.getElementText(item, 'geo:point') ||
-                      this.getElementText(item, 'point');
-      if (geoPoint) {
-        const coords = geoPoint.trim().split(' ');
-        if (coords.length === 2) {
-          event.coordinates = {
-            lat: parseFloat(coords[0]),
-            lon: parseFloat(coords[1])
+      event.category = this.getElementText(item, "category") as
+        | string
+        | undefined;
+
+      // GDACS-specific elements
+      event.eventId = this.getElementText(item, "gdacs:eventid") as
+        | string
+        | undefined;
+      event.eventName = this.getElementText(item, "gdacs:eventname") as
+        | string
+        | undefined;
+      event.episodeId = this.getElementText(item, "gdacs:episodeid") as
+        | string
+        | undefined;
+      event.alertLevel = this.getElementText(item, "gdacs:alertlevel") as
+        | string
+        | undefined;
+      event.iso3 = this.getElementText(item, "gdacs:iso3") as
+        | string
+        | undefined;
+      event.country = this.getElementText(item, "gdacs:country") as
+        | string
+        | undefined;
+      event.fromDate = this.getElementText(item, "gdacs:fromdate") as
+        | string
+        | undefined;
+      event.toDate = this.getElementText(item, "gdacs:todate") as
+        | string
+        | undefined;
+      event.lastModified = this.getElementText(item, "gdacs:lastmodified") as
+        | string
+        | undefined;
+      event.bbox = this.getElementText(item, "gdacs:bbox") as
+        | string
+        | undefined;
+      event.iconUrl = this.getElementText(item, "gdacs:icon") as
+        | string
+        | undefined;
+      event.mapImage = this.getElementText(item, "gdacs:mapimage") as
+        | string
+        | undefined;
+      event.eventTypeCode = this.getElementText(item, "gdacs:eventtype") as
+        | string
+        | undefined;
+
+      // Parse boolean values
+      const isCurrentText = this.getElementText(item, "gdacs:iscurrent");
+      event.isCurrent = isCurrentText === "true";
+      const temporaryText = this.getElementText(item, "gdacs:temporary");
+      event.temporary = temporaryText === "true";
+
+      // Parse alert score
+      const alertScoreText = this.getElementText(item, "gdacs:alertscore");
+      if (alertScoreText) {
+        event.alertScore = parseInt(alertScoreText);
+      }
+
+      // Parse resources
+      const resourceElements = item.getElementsByTagName("gdacs:resources");
+      if (resourceElements.length > 0) {
+        event.resources = [];
+        for (let j = 0; j < resourceElements.length; j++) {
+          const resourceElement = resourceElements[j];
+          const uri = resourceElement.getAttribute("uri");
+          const title = resourceElement.textContent?.trim();
+          if (uri && title) {
+            event.resources.push({ uri, title });
+          }
+        }
+      }
+
+      // Parse affected countries
+      const affectedCountriesText = this.getElementText(
+        item,
+        "gdacs:affectedcountries"
+      );
+      if (affectedCountriesText) {
+        event.affectedCountries = affectedCountriesText
+          .split(",")
+          .map((c) => c.trim());
+      }
+
+      // Parse severity with attributes
+      const severityElement = item.getElementsByTagName("gdacs:severity")[0];
+      if (severityElement) {
+        const unit = severityElement.getAttribute("unit");
+        const value = severityElement.getAttribute("value");
+        const description = severityElement.textContent?.trim();
+        if (unit && value && description) {
+          event.severity = {
+            unit,
+            value: parseFloat(value),
+            description,
           };
         }
       }
 
-      // Extract event type and alert level from title or description
-      event.eventType = this.extractEventType(title);
-      event.alertLevel = this.extractAlertLevel(title);
-      event.country = this.extractCountry(title);
+      // Parse population with attributes
+      const populationElement =
+        item.getElementsByTagName("gdacs:population")[0];
+      if (populationElement) {
+        const unit = populationElement.getAttribute("unit");
+        const value = populationElement.getAttribute("value");
+        const description = populationElement.textContent?.trim();
+        if (unit && value && description) {
+          event.population = {
+            unit,
+            value: parseFloat(value),
+            description,
+          };
+        }
+      }
+
+      // Parse vulnerability
+      const vulnerabilityElement = item.getElementsByTagName(
+        "gdacs:vulnerability"
+      )[0];
+      if (vulnerabilityElement) {
+        const value = vulnerabilityElement.getAttribute("value");
+        const level = vulnerabilityElement.textContent?.trim();
+        if (value && level) {
+          event.vulnerability = {
+            value: parseInt(value),
+            level,
+          };
+        }
+      }
+
+      // Parse coordinates from georss:point if available
+      const geoPoint =
+        this.getElementText(item, "georss:point") ||
+        this.getElementText(item, "geo:point") ||
+        this.getElementText(item, "point");
+      if (geoPoint) {
+        const coords = geoPoint.trim().split(" ");
+        if (coords.length === 2) {
+          event.coordinates = {
+            lat: parseFloat(coords[0]),
+            lon: parseFloat(coords[1]),
+          };
+        }
+      }
+
+      // Extract event type from gdacs:eventtype or fallback to title parsing
+      if (event.eventTypeCode) {
+        event.eventType = this.mapEventTypeCode(event.eventTypeCode);
+      } else {
+        event.eventType = this.extractEventType(title);
+      }
 
       return event;
     } catch (error) {
-      console.error('Error parsing RSS item:', error);
+      console.error("Error parsing RSS item:", error);
       return null;
     }
   }
@@ -206,15 +376,22 @@ class GDACSRSSParser {
    * @returns string | undefined
    */
   private extractEventType(title: string): string | undefined {
-    const eventTypes = ['Earthquake', 'Flood', 'Tropical Cyclone', 'Volcano', 'Drought', 'Fire'];
+    const eventTypes = [
+      "Earthquake",
+      "Flood",
+      "Tropical Cyclone",
+      "Volcano",
+      "Drought",
+      "Fire",
+    ];
     const upperTitle = title.toUpperCase();
-    
+
     for (const type of eventTypes) {
       if (upperTitle.includes(type.toUpperCase())) {
         return type;
       }
     }
-    
+
     return undefined;
   }
 
@@ -224,15 +401,15 @@ class GDACSRSSParser {
    * @returns string | undefined
    */
   private extractAlertLevel(title: string): string | undefined {
-    const alertLevels = ['Red', 'Orange', 'Green'];
+    const alertLevels = ["Red", "Orange", "Green"];
     const upperTitle = title.toUpperCase();
-    
+
     for (const level of alertLevels) {
       if (upperTitle.includes(level.toUpperCase())) {
         return level;
       }
     }
-    
+
     return undefined;
   }
 
@@ -247,19 +424,40 @@ class GDACSRSSParser {
     if (inMatch) {
       return inMatch[1].trim();
     }
-    
+
     const dashMatch = title.match(/([^-]+)\s*-/);
     if (dashMatch) {
       const potential = dashMatch[1].trim();
       // Simple check to avoid extracting event types as countries
-      if (!['Earthquake', 'Flood', 'Cyclone', 'Volcano', 'Drought', 'Fire'].some(
-        type => potential.includes(type)
-      )) {
+      if (
+        !["Earthquake", "Flood", "Cyclone", "Volcano", "Drought", "Fire"].some(
+          (type) => potential.includes(type)
+        )
+      ) {
         return potential;
       }
     }
-    
+
     return undefined;
+  }
+
+  /**
+   * Maps GDACS event type codes to readable names
+   * @param code GDACS event type code
+   * @returns string Readable event type name
+   */
+  private mapEventTypeCode(code: string): string {
+    const typeMap: Record<string, string> = {
+      EQ: "Earthquake",
+      FL: "Flood",
+      TC: "Tropical Cyclone",
+      VO: "Volcano",
+      DR: "Drought",
+      WF: "Wildfire",
+      CY: "Cyclone",
+    };
+
+    return typeMap[code] || code;
   }
 }
 
@@ -268,21 +466,23 @@ async function main() {
   try {
     const parser = new GDACSRSSParser();
     const events = await parser.fetchAndParseEvents();
-    
+
     console.log(`Found ${events.length} disaster events:`);
     events.forEach((event, index) => {
       console.log(`${index + 1}. ${event.title}`);
-      console.log(`   Type: ${event.eventType || 'Unknown'}`);
-      console.log(`   Alert: ${event.alertLevel || 'No alert'}`);
-      console.log(`   Country: ${event.country || 'Unknown'}`);
+      console.log(`   Type: ${event.eventType || "Unknown"}`);
+      console.log(`   Alert: ${event.alertLevel || "No alert"}`);
+      console.log(`   Country: ${event.country || "Unknown"}`);
       if (event.coordinates) {
-        console.log(`   Location: ${event.coordinates.lat}, ${event.coordinates.lon}`);
+        console.log(
+          `   Location: ${event.coordinates.lat}, ${event.coordinates.lon}`
+        );
       }
       console.log(`   Link: ${event.link}`);
-      console.log('');
+      console.log("");
     });
   } catch (error) {
-    console.error('Failed to fetch events:', error);
+    console.error("Failed to fetch events:", error);
   }
 }
 
