@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     // Send email using Resend
     const { data, error } = await resend.emails.send({
       from: "GDACS System <taqat@resend.dev>", // Replace with your verified domain
-      to: ["jasimea@gmail.com", "info@taqat.qa"],
+      to: ["info@taqat.qa", "gold.semir@gmail.com"],
       subject: `Organization Report: ${companyName}`,
       html: emailContent,
     });
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       {
         message: "Report sent successfully",
         emailId: data?.id,
-        recipient: "jasimea@gmail.com",
+        recipient: "info@taqat.qa, gold.semir@gmail.com",
       },
       { status: 200 }
     );
