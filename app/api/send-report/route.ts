@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
 import { generateReport } from "@/lib/report-generator";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend("re_iP5MFbyU_8WbrCeDZmGSgjuXfazZnyewe");
 
 export async function POST(request: NextRequest) {
   try {
