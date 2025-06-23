@@ -48,6 +48,7 @@ interface IncidentData {
   type: string;
   affectedPopulation: string;
   responseTeams: number;
+  eventId: string;
 }
 
 async function fetchGDACSIncidents(): Promise<IncidentData[]> {
@@ -732,7 +733,7 @@ export default function IncidentsPage() {
                         </Badge>
                       </div>
                       <Link
-                        href={`/incidents/${incident.id}`}
+                        href={`/incidents/${incident.eventId}`}
                         className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors mt-2"
                       >
                         <Eye className="size-3" />

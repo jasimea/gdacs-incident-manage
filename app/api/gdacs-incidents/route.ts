@@ -11,6 +11,7 @@ interface IncidentData {
   type: string;
   affectedPopulation: string;
   responseTeams: number;
+  eventId: string;
 }
 
 async function fetchGDACSIncidents(): Promise<IncidentData[]> {
@@ -76,6 +77,10 @@ function parseGDACSXML(xmlText: string): IncidentData[] {
       extractEventTypeFromCategory(category);
     const population =
       extractTagContent(itemContent, "gdacs:population") || "0";
+    const eventId =
+      extractTagContent(itemContent, "gdacs:eventid") ||
+      extractEventIdFromLink(link) ||
+      `event_${id}`;
 
     // Transform GDACS data to our component format
     const incident: IncidentData = {
@@ -89,6 +94,7 @@ function parseGDACSXML(xmlText: string): IncidentData[] {
       type: mapEventTypeToType(eventType),
       affectedPopulation: formatPopulation(population),
       responseTeams: Math.floor(Math.random() * 15) + 1, // Generate random team count since not in RSS
+      eventId: eventId,
     };
 
     incidents.push(incident);
@@ -114,6 +120,13 @@ function extractCountryFromTitle(title: string): string {
   // Try to extract country from title patterns like "in [Country]"
   const countryMatch = title.match(/in\s+([A-Za-z\s,]+?)(?:\s+\d|$)/);
   return countryMatch ? countryMatch[1].trim() : "Unknown Location";
+}
+
+function extractEventIdFromLink(link: string): string {
+  // Extract event ID from GDACS link patterns
+  // Example: https://www.gdacs.org/report.aspx?eventtype=TC&eventid=1001169
+  const eventIdMatch = link.match(/eventid=(\d+)/);
+  return eventIdMatch ? eventIdMatch[1] : "";
 }
 
 function extractAlertLevelFromTitle(title: string): string {
