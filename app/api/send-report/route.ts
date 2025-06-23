@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
-import { generateReport } from "@/artifacts/report/server";
+import { generateReport } from "@/lib/report-generator";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
