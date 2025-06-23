@@ -16,7 +16,7 @@ const ReportRenderer = memo(function ReportRenderer({
 }) {
   return (
     <div 
-      className="max-w-none size-full overflow-hidden"
+      className="max-w-none size-full overflow-auto"
       dangerouslySetInnerHTML={{ __html: content }}
     />
   );
