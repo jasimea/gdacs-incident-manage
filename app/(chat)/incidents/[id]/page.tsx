@@ -31,9 +31,9 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 interface IncidentDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 interface IncidentDetailData {
@@ -107,13 +107,50 @@ async function fetchIncidentData(
   }
 }
 
+async function fetchProductsData(eventId: string): Promise<any[]> {
+  try {
+    const response = await fetch(`/api/products/${eventId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    if (result.success) {
+      return result.data.products || [];
+    } else {
+      throw new Error(result.error || "Failed to fetch products");
+    }
+  } catch (error) {
+    console.error("Error fetching products data:", error);
+    return [];
+  }
+}
+
 export default function IncidentDetailPage({
   params,
 }: IncidentDetailPageProps) {
-  const { id } = params;
+  const [id, setId] = useState<string>("");
   const [incident, setIncident] = useState<IncidentDetailData | null>(null);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Resolve params Promise
+  useEffect(() => {
+    const resolveParams = async () => {
+      const resolvedParams = await params;
+      setId(resolvedParams.id);
+    };
+    resolveParams();
+  }, [params]);
 
   // Mock AI agent data since it's not in GDACS RSS
   const mockAiAgent = {
@@ -134,86 +171,50 @@ export default function IncidentDetailPage({
         : "Monitor situation for potential escalation",
   };
 
-  // Mock products data since it's not in GDACS RSS
-  const mockProducts = [
-    {
-      id: 1,
-      name: "Emergency Medical Kits",
-      category: "Medical",
-      quantity: 150,
-      eta: "2 hours",
-      status: "Ready",
-      priority: "High",
-      sponsors: 3,
-      leadCompany: "RedCross International",
-    },
-    {
-      id: 2,
-      name: "Portable Water Purifiers",
-      category: "Water & Sanitation",
-      quantity: 75,
-      eta: "4 hours",
-      status: "Ready",
-      priority: "High",
-      sponsors: 2,
-      leadCompany: "UNICEF",
-    },
-    {
-      id: 3,
-      name: "Emergency Food Rations",
-      category: "Food & Nutrition",
-      quantity: 500,
-      eta: "6 hours",
-      status: "Preparing",
-      priority: "Medium",
-      sponsors: 5,
-      leadCompany: "World Food Programme",
-    },
-    {
-      id: 4,
-      name: "Rescue Equipment",
-      category: "Search & Rescue",
-      quantity: 25,
-      eta: "3 hours",
-      status: "Ready",
-      priority: "High",
-      sponsors: 1,
-      leadCompany: "Emergency Response Corp",
-    },
-    {
-      id: 5,
-      name: "Communication Devices",
-      category: "Communication",
-      quantity: 100,
-      eta: "1 hour",
-      status: "Ready",
-      priority: "Medium",
-      sponsors: 4,
-      leadCompany: "TechAid Foundation",
-    },
-    {
-      id: 6,
-      name: "Temporary Shelters",
-      category: "Shelter",
-      quantity: 200,
-      eta: "8 hours",
-      status: "En Route",
-      priority: "High",
-      sponsors: 6,
-      leadCompany: "Habitat for Humanity",
-    },
-  ];
+  // Map products from API to display format
+  const displayProducts = products.map((product, index) => ({
+    id: index + 1,
+    name: product.name,
+    category: product.categoryName,
+    quantity: product.estimatedQuantityNeeded,
+    eta: `${Math.floor(Math.random() * 8) + 1} hours`, // Mock ETA
+    status: ["Ready", "Preparing", "En Route"][Math.floor(Math.random() * 3)],
+    priority: product.priority >= 4 ? "High" : "Medium",
+    sponsors: Math.floor(Math.random() * 6) + 1, // Mock sponsors
+    leadCompany: getLeadCompanyForCategory(product.categoryName),
+  }));
+
+  function getLeadCompanyForCategory(category: string): string {
+    const companyMap: { [key: string]: string } = {
+      "First Aid": "RedCross International",
+      "Water & Sanitation": "UNICEF",
+      "Ready-to-Eat Food": "World Food Programme",
+      "Shelter & Tents": "Habitat for Humanity",
+      "Kitchen Sets": "Relief International",
+      "Blankets & Bedding": "UNHCR",
+      "Winterization Kits": "Save the Children",
+    };
+    return companyMap[category] || "International Aid Foundation";
+  }
 
   // Fetch incident data on component mount
   useEffect(() => {
+    if (!id) return; // Wait for id to be resolved
+
     const loadIncident = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const incidentData = await fetchIncidentData(id);
+        // Fetch incident data and products in parallel
+        const [incidentData, productsData] = await Promise.all([
+          fetchIncidentData(id),
+          fetchProductsData(id),
+        ]);
+
         if (incidentData) {
           setIncident(incidentData);
+          setProducts(productsData);
         } else {
           setError("Incident not found");
         }
@@ -226,6 +227,22 @@ export default function IncidentDetailPage({
     };
 
     loadIncident();
+  }, [id]);
+
+  // Fetch products data when incident ID is available
+  useEffect(() => {
+    const loadProducts = async () => {
+      if (!id) return;
+
+      try {
+        const productsData = await fetchProductsData(id);
+        setProducts(productsData);
+      } catch (err) {
+        console.error("Error loading products:", err);
+      }
+    };
+
+    loadProducts();
   }, [id]);
 
   const getTypeIcon = (type: string) => {
@@ -935,7 +952,7 @@ export default function IncidentDetailPage({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {mockProducts.map((product, index) => (
+                      {displayProducts.map((product: any, index: number) => (
                         <tr
                           key={product.id}
                           className="hover:bg-gray-50 transition-colors"
@@ -1060,15 +1077,16 @@ export default function IncidentDetailPage({
                     <div className="flex items-center gap-4">
                       <span className="text-gray-600">
                         <span className="font-semibold text-gray-900">
-                          {mockProducts.length}
+                          {displayProducts.length}
                         </span>{" "}
                         products available
                       </span>
                       <span className="text-gray-600">
                         <span className="font-semibold text-green-600">
                           {
-                            mockProducts.filter((p) => p.status === "Ready")
-                              .length
+                            displayProducts.filter(
+                              (p: any) => p.status === "Ready"
+                            ).length
                           }
                         </span>{" "}
                         ready for immediate deployment
